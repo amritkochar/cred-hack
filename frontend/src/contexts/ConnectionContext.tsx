@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useRef, FC, PropsWithChildren } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { SessionStatus, ServerEvent } from "@/types";
+import { SessionStatus, ServerEvent, TranscriptItem } from "@/types";
 import { useTranscript } from "./TranscriptContext";
 import { createRealtimeConnection } from "@/lib/realtimeConnection";
 import agentConfig from "@/config/agentConfig";
@@ -16,7 +16,7 @@ interface ConnectionContextValue {
 const ConnectionContext = createContext<ConnectionContextValue | undefined>(undefined);
 
 export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
-  const { addTranscriptMessage, updateTranscriptMessage, addTranscriptEvent, updateTranscriptItemStatus } = useTranscript();
+  const { transcriptItems, addTranscriptMessage, updateTranscriptMessage, addTranscriptEvent, updateTranscriptItemStatus } = useTranscript();
 
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("DISCONNECTED");
 
@@ -271,7 +271,23 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   };
 
+  const printConversationTranscript = () => {
+    console.group("Conversation Transcript");
+    
+    transcriptItems
+      .filter((item: TranscriptItem) => item.type === "MESSAGE")
+      .forEach((item: TranscriptItem) => {
+        // Use the actual role from the transcript item
+        console.log(`${item.role}: ${item.content}`);
+      });
+    
+    console.groupEnd();
+  };
+
   const disconnect = () => {
+    // Print the conversation transcript when user ends the conversation
+    printConversationTranscript();
+    
     if (pcRef.current) {
       pcRef.current.getSenders().forEach((sender) => {
         if (sender.track) {
