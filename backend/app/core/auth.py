@@ -1,5 +1,7 @@
 import jwt
 import datetime
+import aiohttp
+import ssl
 from passlib.context import CryptContext
 from typing import Optional
 
@@ -47,3 +49,42 @@ def verify_token(token: str) -> dict:
         raise Exception("Token has expired")
     except jwt.JWTError:
         raise Exception("Invalid token")
+
+# Function to create OpenAI ephemeral token
+async def create_openai_ephemeral_token():
+    """
+    Creates an ephemeral token for OpenAI's realtime API.
+    Returns the response data containing the token.
+    """
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise Exception("OPENAI_API_KEY not found in environment variables")
+    
+    # Create a ClientSession with SSL verification disabled
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    
+    connector = aiohttp.TCPConnector(ssl=ssl_context)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        async with session.post(
+            "https://api.openai.com/v1/realtime/sessions",
+            headers={
+                "Authorization": f"Bearer {openai_api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "gpt-4o-realtime-preview-2024-12-17",
+                "modalities": ["audio", "text"],
+                "voice": "echo"
+            }
+        ) as response:
+            if response.status != 200:
+                error_text = await response.text()
+                raise Exception(f"Failed to create OpenAI ephemeral token: {error_text}")
+            
+            data = await response.json()
+            if not data or "client_secret" not in data or "value" not in data["client_secret"] or not data["client_secret"]["value"]:
+                raise Exception("Invalid response: 'client_secret.value' not found or empty in the response data")
+            return data["client_secret"]["value"]
+            return data

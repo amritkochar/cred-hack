@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from app.core.auth import create_access_token, verify_password, hash_password
+from app.core.auth import create_access_token, verify_password, hash_password, create_openai_ephemeral_token
 from app.db.dynamo_client import get_user_persona, create_user, get_user_by_email
 
 router = APIRouter()
@@ -48,4 +48,15 @@ async def login(request: LoginRequest):
     from app.core.cache import fetch_and_cache_user_persona
     await fetch_and_cache_user_persona(user['user_id'])
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Generate OpenAI ephemeral token
+    try:
+        openai_token_data = await create_openai_ephemeral_token()
+    except Exception as e:
+        # Log the error but don't fail the login
+        print(f"Error generating OpenAI ephemeral token: {str(e)}")
+        openai_token_data = None
+    
+    return {
+        "access_token": access_token,
+        "openai_ephemeral_token": openai_token_data
+    }
