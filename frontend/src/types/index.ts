@@ -40,6 +40,7 @@ export interface PersonalityAndTone {
 
 export interface AgentConfig {
   name: string;
+  voice?: string;
   publicDescription: string;
   instructions: string;
   tools: Tool[];

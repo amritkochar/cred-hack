@@ -327,11 +327,14 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
       session: {
         modalities: ["text", "audio"],
         instructions: agentConfig.instructions,
-        voice: "coral",
+        voice: agentConfig.voice,
         input_audio_format: "pcm16",
         output_audio_format: "pcm16",
-        input_audio_transcription: { model: "whisper-1" },
+        input_audio_transcription: { model: "gpt-4o-transcribe", prompt: "expect conversation around money, financial planning, human emotions and psychology around money" },
+        input_audio_noise_reduction: { type: "far_field" },
         turn_detection: turnDetection,
+        temperature: 0.8,
+        tool_choice: "auto",
         tools: agentConfig.tools,
       },
     };
