@@ -3,7 +3,7 @@ import json
 import ssl
 import aiohttp
 from app.db.dynamo_client import get_user_persona, upsert_user_persona
-from app.core.cache import update_user_persona_cache
+from app.core.cache import update_user_persona_cache, DecimalEncoder
 
 # Get OpenAI API key from environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -142,7 +142,7 @@ def create_system_prompt(current_persona: dict) -> str:
     
     CURRENT USER PERSONA:
     ```
-    {json.dumps(current_persona, indent=2)}
+    {json.dumps(current_persona, indent=2, cls=DecimalEncoder)}
     ```
     
     TASK:
