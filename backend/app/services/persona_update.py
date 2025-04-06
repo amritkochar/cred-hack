@@ -108,6 +108,8 @@ def create_system_prompt(current_persona: dict) -> str:
     USER PERSONA SCHEMA:
     ```
     {{
+      "firstName": string,  // User's first name
+      "lastName": string,   // User's last name
       "risk_profile": string,  // Conservative, Moderate, Aggressive, etc.
       "investment_goals": [
         {{
@@ -149,7 +151,12 @@ def create_system_prompt(current_persona: dict) -> str:
     1. Analyze the conversation transcript
     2. Extract relevant financial information, goals, preferences, and behaviors
     3. Update the user persona fields based on the conversation
-    4. IMPORTANT: For the "risk_profile" field:
+    4. IMPORTANT: If the user's name is mentioned in the conversation:
+       - Extract the firstName and lastName if provided
+       - If only a full name is given, split it appropriately into firstName and lastName
+       - Only update these fields if they are not already populated in the current persona
+       - Store the name with proper capitalization
+    5. IMPORTANT: For the "risk_profile" field:
        - If it's empty or null, assign the most appropriate value based on the conversation
        - If it already has a value, evaluate if it should be changed based on the current conversation
        - Valid values include: "Conservative", "Moderate", "Balanced", "Growth", "Aggressive"
@@ -219,6 +226,14 @@ def parse_openai_response(response_data, current_persona: dict) -> dict:
             "financial_summary": updated_persona["financial_summary"],
             "personal_context": updated_persona["personal_context"]
         }
+        
+        # Add firstName and lastName if they exist in the updated persona
+        # and are not already in the current persona
+        if "firstName" in updated_persona and (not current_persona.get("firstName") or current_persona.get("firstName") == ""):
+            filtered_persona["firstName"] = updated_persona["firstName"]
+            
+        if "lastName" in updated_persona and (not current_persona.get("lastName") or current_persona.get("lastName") == ""):
+            filtered_persona["lastName"] = updated_persona["lastName"]
             
         return filtered_persona
         

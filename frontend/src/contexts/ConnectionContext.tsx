@@ -359,7 +359,7 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
       type: "session.update",
       session: {
         modalities: ["text", "audio"],
-        instructions: agentConfig.instructions,
+        instructions: agentConfig.instructions + "here are some of my personality traits for the agent" + agentConfig.personalityAndTone,
         voice: agentConfig.voice,
         input_audio_format: "pcm16",
         output_audio_format: "pcm16",
