@@ -7,9 +7,9 @@ import { useTranscript } from "./TranscriptContext";
 import { useAuth } from "./AuthContext";
 import { createRealtimeConnection } from "@/lib/realtimeConnection";
 import { baseAgentConfig } from "@/config/agentConfig";
-import { getOpenAIEphemeralToken } from "@/utils/storage";
+import { getOpenAIEphemeralToken, storeUserPersona } from "@/utils/storage";
 import { getAgentConfigWithUserPersona } from "@/utils/agentConfigUtils";
-import { sendConversationTranscript } from "@/api/backendApi";
+import { fetchUserPersona, sendConversationTranscript } from "@/api/backendApi";
 
 interface ConnectionContextValue {
   sessionStatus: SessionStatus;
@@ -202,6 +202,18 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
         addTranscriptEvent("Authentication required. Please log in.");
         setSessionStatus("DISCONNECTED");
         return;
+      }
+
+      // Fetch the latest user persona from the backend and update it in local storage
+      try {
+        addTranscriptEvent("Refreshing user persona data...");
+        const userPersona = await fetchUserPersona();
+        storeUserPersona(userPersona);
+        console.log("User persona refreshed successfully");
+      } catch (error) {
+        console.error("Failed to refresh user persona:", error);
+        // Continue with connection flow even if persona fetch fails
+        addTranscriptEvent("Warning: Could not refresh user data. Some personalized features may be limited.");
       }
       
       // Check if we're in a secure context (required for microphone access)

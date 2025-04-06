@@ -66,8 +66,8 @@ async def fetch_and_cache_user_persona(user_id):
         del user_persona["user_id"]    
 
     if user_persona:
-        # Set data in cache with 30-minute TTL
-        await cache.set(f"user_persona:{user_id}", user_persona, ttl=60)  # TTL is 1800 seconds (30 mins)
+        # Set data in cache with 1-minute TTL
+        await cache.set(f"user_persona:{user_id}", user_persona, ttl=1)  # TTL is 1800 seconds (30 mins)
     
     return user_persona
 
@@ -77,8 +77,8 @@ async def update_user_persona_cache(user_id, user_persona):
     Update the cache with new user persona data after an upsert operation.
     """
     if user_persona:
-        # Set data in cache with 30-minute TTL
-        await cache.set(f"user_persona:{user_id}", user_persona, ttl=1800)  # TTL is 1800 seconds (30 mins)
+        # Set data in cache with 1-minute TTL
+        await cache.set(f"user_persona:{user_id}", user_persona, ttl=1)  # TTL is 1800 seconds (30 mins)
     
     return user_persona
 
