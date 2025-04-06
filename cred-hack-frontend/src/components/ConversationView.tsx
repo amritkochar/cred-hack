@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranscript } from "@/contexts/TranscriptContext";
 import TranscriptItem from "./TranscriptItem";
 import MicButton from "./MicButton";
+import RecordedAudios from "./RecordedAudios";
 
 const ConversationView: React.FC = () => {
   const { transcriptItems } = useTranscript();
@@ -50,6 +51,11 @@ const ConversationView: React.FC = () => {
           ))}
           <div ref={conversationEndRef} className="h-4" />
         </div>
+      </div>
+      
+      {/* Recorded audio files */}
+      <div className="mt-4">
+        <RecordedAudios className="p-4 glass rounded-xl xs:rounded-2xl shadow-lg" />
       </div>
       
       {/* Floating mic button at the bottom */}

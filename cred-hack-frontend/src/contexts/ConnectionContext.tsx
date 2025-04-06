@@ -5,16 +5,25 @@ import { v4 as uuidv4 } from "uuid";
 import { SessionStatus, ServerEvent, TranscriptItem } from "@/types";
 import { useTranscript } from "./TranscriptContext";
 import { useAuth } from "./AuthContext";
-import { createRealtimeConnection } from "@/lib/realtimeConnection";
+import { createRealtimeConnection, AudioRecorder } from "@/lib/realtimeConnection";
 import { baseAgentConfig } from "@/config/agentConfig";
 import { getOpenAIEphemeralToken } from "@/utils/storage";
 import { getAgentConfigWithUserPersona } from "@/utils/agentConfigUtils";
 import { sendConversationTranscript } from "@/api/backendApi";
 
+interface RecordedAudio {
+  blob: Blob;
+  url: string;
+  timestamp: string;
+  interactionId: string;
+}
+
 interface ConnectionContextValue {
   sessionStatus: SessionStatus;
   connect: () => Promise<void>;
   disconnect: () => void;
+  recordedAudios: RecordedAudio[];
+  downloadRecordedAudio: (index: number) => void;
 }
 
 const ConnectionContext = createContext<ConnectionContextValue | undefined>(undefined);
@@ -24,10 +33,13 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
   const { isAuthenticated } = useAuth();
 
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("DISCONNECTED");
+  const [recordedAudios, setRecordedAudios] = useState<RecordedAudio[]>([]);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const audioRecorderRef = useRef<AudioRecorder | null>(null);
+  const currentInteractionIdRef = useRef<string>("");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sendClientEvent = (eventObj: any, eventNameSuffix = "") => {
@@ -230,18 +242,28 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
         // Attempt to create the realtime connection
         addTranscriptEvent("Connecting to OpenAI Realtime API...");
         
-        const { pc, dc } = await createRealtimeConnection(
+        const { pc, dc, audioRecorder } = await createRealtimeConnection(
           EPHEMERAL_KEY,
           audioElementRef
         );
         pcRef.current = pc;
         dcRef.current = dc;
+        audioRecorderRef.current = audioRecorder;
         
         // Set up event listeners for the data channel
         dc.addEventListener("open", () => {
           console.log("Data channel opened");
           // Once connected, update the session with our agent configuration
           updateSession();
+          
+          // Generate a new interaction ID for this conversation
+          currentInteractionIdRef.current = uuidv4();
+          
+          // Start recording audio if recorder is available
+          if (audioRecorderRef.current) {
+            audioRecorderRef.current.startRecording();
+            console.log("Started recording audio for interaction:", currentInteractionIdRef.current);
+          }
         });
         
         dc.addEventListener("close", () => {
@@ -297,10 +319,59 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
       console.error("Error sending transcript to backend:", error);
     }
   };
+  
+  const saveRecordedAudio = async () => {
+    if (audioRecorderRef.current && audioRecorderRef.current.isRecording()) {
+      try {
+        // Stop recording and get the audio blob
+        const audioBlob = await audioRecorderRef.current.stopRecording();
+        
+        // Create a URL for the audio blob
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Format timestamp
+        const timestamp = new Date().toISOString();
+        
+        // Add the recorded audio to the state
+        setRecordedAudios(prev => [
+          ...prev, 
+          {
+            blob: audioBlob,
+            url: audioUrl,
+            timestamp,
+            interactionId: currentInteractionIdRef.current
+          }
+        ]);
+        
+        console.log(`Audio recording saved: ${timestamp} for interaction: ${currentInteractionIdRef.current}`);
+        addTranscriptEvent(`Audio recording saved: ${timestamp}`);
+        
+      } catch (error) {
+        console.error("Error saving audio recording:", error);
+        addTranscriptEvent(`Error saving audio recording: ${error}`);
+      }
+    }
+  };
+  
+  const downloadRecordedAudio = (index: number) => {
+    const audio = recordedAudios[index];
+    if (!audio) return;
+    
+    // Create a download link
+    const a = document.createElement("a");
+    a.href = audio.url;
+    a.download = `conversation-${audio.interactionId}-${audio.timestamp}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
-  const disconnect = () => {
+  const disconnect = async () => {
     // Print the conversation transcript when user ends the conversation
     printConversationTranscript();
+    
+    // Save the recorded audio
+    await saveRecordedAudio();
     
     if (pcRef.current) {
       pcRef.current.getSenders().forEach((sender) => {
@@ -381,6 +452,8 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
         sessionStatus,
         connect,
         disconnect,
+        recordedAudios,
+        downloadRecordedAudio,
       }}
     >
       {children}
