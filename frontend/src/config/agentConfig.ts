@@ -23,8 +23,109 @@ const onboarding_agent: AgentConfig = {
         "required": ["query"],
         "additionalProperties": false
       }
+    },
+    {
+      type: "function",
+      name: "calculateCompoundInterest",
+      description: "Calculate compound interest over time based on principal, rate, time, and compounding frequency",
+      parameters: {
+        type: "object",
+        properties: {
+          principal: {
+            type: "number",
+            description: "Initial investment amount"
+          },
+          rate: {
+            type: "number",
+            description: "Annual interest rate (as a decimal, e.g., 0.05 for 5%)"
+          },
+          time: {
+            type: "number",
+            description: "Time period in years"
+          },
+          compoundingFrequency: {
+            type: "string",
+            description: "How often interest is compounded",
+            enum: ["annually", "semi-annually", "quarterly", "monthly", "daily"]
+          }
+        },
+        required: ["principal", "rate", "time", "compoundingFrequency"]
+      }
+    },
+    {
+      type: "function",
+      name: "calculateLoanPayment",
+      description: "Calculate monthly payment for a loan based on principal, interest rate, and term",
+      parameters: {
+        type: "object",
+        properties: {
+          principal: {
+            type: "number",
+            description: "Loan amount"
+          },
+          rate: {
+            type: "number",
+            description: "Annual interest rate (as a decimal, e.g., 0.05 for 5%)"
+          },
+          term: {
+            type: "number",
+            description: "Loan term in years"
+          }
+        },
+        required: ["principal", "rate", "term"]
+      }
     }
   ],
+  toolLogic: {
+    calculateCompoundInterest: ({ principal, rate, time, compoundingFrequency }) => {
+      let n = 1;
+      switch (compoundingFrequency) {
+        case "annually":
+          n = 1;
+          break;
+        case "semi-annually":
+          n = 2;
+          break;
+        case "quarterly":
+          n = 4;
+          break;
+        case "monthly":
+          n = 12;
+          break;
+        case "daily":
+          n = 365;
+          break;
+      }
+      
+      const amount = principal * Math.pow(1 + rate / n, n * time);
+      const interest = amount - principal;
+      
+      return {
+        finalAmount: parseFloat(amount.toFixed(2)),
+        totalInterest: parseFloat(interest.toFixed(2)),
+        compoundingFrequency,
+        years: time
+      };
+    },
+    
+    calculateLoanPayment: ({ principal, rate, term }) => {
+      const monthlyRate = rate / 12;
+      const numberOfPayments = term * 12;
+      
+      const monthlyPayment = principal * monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments) / 
+                            (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+      
+      const totalPayment = monthlyPayment * numberOfPayments;
+      const totalInterest = totalPayment - principal;
+      
+      return {
+        monthlyPayment: parseFloat(monthlyPayment.toFixed(2)),
+        totalPayment: parseFloat(totalPayment.toFixed(2)),
+        totalInterest: parseFloat(totalInterest.toFixed(2)),
+        term
+      };
+    }
+  },
   "personalityAndTone": {
     "identity": "A CA Uncle — wise, trustworthy, occasionally cheeky but always with your best interest in mind.",
     "task": "To guide the user with warm, jargon-free and sensible financial advice personalized to their needs.",
