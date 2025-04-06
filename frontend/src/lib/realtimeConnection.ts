@@ -1,14 +1,5 @@
 import { RefObject } from "react";
 
-// Interface for audio recording
-export interface AudioRecorder {
-  mediaRecorder: MediaRecorder;
-  audioChunks: Blob[];
-  startRecording: () => void;
-  stopRecording: () => Promise<Blob>;
-  isRecording: () => boolean;
-}
-
 // Check if the current environment is secure (HTTPS or localhost)
 const isSecureContext = (): boolean => {
   return window.isSecureContext || 
@@ -19,7 +10,7 @@ const isSecureContext = (): boolean => {
 export async function createRealtimeConnection(
   ephemeralKey: string,
   audioElement: RefObject<HTMLAudioElement | null>
-): Promise<{ pc: RTCPeerConnection; dc: RTCDataChannel; audioRecorder: AudioRecorder | null }> {
+): Promise<{ pc: RTCPeerConnection; dc: RTCDataChannel }> {
   const pc = new RTCPeerConnection();
 
   pc.ontrack = (e) => {
@@ -27,9 +18,6 @@ export async function createRealtimeConnection(
       audioElement.current.srcObject = e.streams[0];
     }
   };
-
-  // Initialize audio recorder as null
-  let audioRecorder: AudioRecorder | null = null;
 
   // Request microphone access and add audio track to peer connection
   try {
@@ -65,41 +53,6 @@ export async function createRealtimeConnection(
       const ms = await navigator.mediaDevices.getUserMedia(constraints);
       pc.addTrack(ms.getTracks()[0]);
       console.log("Microphone access granted successfully");
-      
-      // Create audio recorder
-      const mediaRecorder = new MediaRecorder(ms);
-      const audioChunks: Blob[] = [];
-      
-      mediaRecorder.addEventListener('dataavailable', (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
-      });
-      
-      // Create the audio recorder interface
-      audioRecorder = {
-        mediaRecorder,
-        audioChunks,
-        startRecording: () => {
-          audioChunks.length = 0; // Clear previous chunks
-          mediaRecorder.start(1000); // Collect chunks every second
-        },
-        stopRecording: () => {
-          return new Promise<Blob>((resolve) => {
-            if (mediaRecorder.state === 'recording') {
-              mediaRecorder.addEventListener('stop', () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                resolve(audioBlob);
-              }, { once: true });
-              mediaRecorder.stop();
-            } else {
-              const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-              resolve(audioBlob);
-            }
-          });
-        },
-        isRecording: () => mediaRecorder.state === 'recording'
-      };
     } else {
       console.warn("MediaDevices API is not available - continuing without microphone access");
       // Create a silent audio track as a fallback
@@ -160,5 +113,5 @@ export async function createRealtimeConnection(
   // Set remote description with answer from API
   await pc.setRemoteDescription(answer);
 
-  return { pc, dc, audioRecorder };
+  return { pc, dc };
 }
