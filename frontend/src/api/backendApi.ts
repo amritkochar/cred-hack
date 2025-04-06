@@ -104,3 +104,24 @@ export const uploadBankStatement = async (file: File): Promise<any> => {
 
   return response.json();
 };
+
+/**
+ * Send conversation transcript to backend
+ */
+import { TranscriptItem } from "@/types";
+
+export const sendConversationTranscript = async (transcript: TranscriptItem[]): Promise<void> => {
+  const response = await authFetch(API_ENDPOINTS.transcript, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(transcript),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Failed to send transcript:', errorData.detail || 'Unknown error');
+    // Don't throw error to avoid disrupting the disconnect flow
+  }
+};

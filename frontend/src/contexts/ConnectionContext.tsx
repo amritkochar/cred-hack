@@ -9,6 +9,7 @@ import { createRealtimeConnection } from "@/lib/realtimeConnection";
 import { baseAgentConfig } from "@/config/agentConfig";
 import { getOpenAIEphemeralToken } from "@/utils/storage";
 import { getAgentConfigWithUserPersona } from "@/utils/agentConfigUtils";
+import { sendConversationTranscript } from "@/api/backendApi";
 
 interface ConnectionContextValue {
   sessionStatus: SessionStatus;
@@ -283,17 +284,18 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   };
 
-  const printConversationTranscript = () => {
-    console.group("Conversation Transcript");
+  const printConversationTranscript = async () => {
+    // Filter for message items only
+    const messageTranscript = transcriptItems
+      .filter((item: TranscriptItem) => item.type === "MESSAGE");
     
-    transcriptItems
-      .filter((item: TranscriptItem) => item.type === "MESSAGE")
-      .forEach((item: TranscriptItem) => {
-        // Use the actual role from the transcript item
-        console.log(`${item.role}: ${item.content}`);
-      });
-    
-    console.groupEnd();
+    try {
+      // Send transcript to backend API
+      await sendConversationTranscript(messageTranscript);
+    } catch (error) {
+      // Log error but don't disrupt the disconnect flow
+      console.error("Error sending transcript to backend:", error);
+    }
   };
 
   const disconnect = () => {

@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from app.core.auth import verify_token
 
 # OAuth2PasswordBearer is used to extract the token from Authorization header
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 # Dependency to get the current user from the JWT token
 def get_current_user(token: str = Depends(oauth2_scheme)):

@@ -11,4 +11,5 @@ export const API_ENDPOINTS = {
   login: `${API_BASE_URL}/auth/token`,
   userPersona: `${API_BASE_URL}/users/persona`,
   onboardBanking: `${API_BASE_URL}/users/onboard-banking`,
+  transcript: `${API_BASE_URL}/users/interactions/transcript`,
 };
