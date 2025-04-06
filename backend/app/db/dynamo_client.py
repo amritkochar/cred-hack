@@ -40,9 +40,11 @@ def create_user(email: str, password: str, username: str):
                 'email': email,
                 'username': username,
                 'password': hashed_password,
-                'risk_profile': 'moderate', # Default profile
-                'investment_goals': [],
+                'risk_profile': '', # to be set from conversations everytime
+                'investment_goals': [], #list of objects where goals with details are defined
                 'spending_pattern': {},
+                'financial_summary': {},
+                'personal_context': [] #list of strings from past conversations
             }
         )
         return response

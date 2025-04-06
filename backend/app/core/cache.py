@@ -61,7 +61,9 @@ async def fetch_and_cache_user_persona(user_id):
     if "password" in user_persona:
         del user_persona["password"]
     if "email" in user_persona:
-        del user_persona["email"]    
+        del user_persona["email"]  
+    if "user_id" in user_persona:
+        del user_persona["user_id"]    
 
     if user_persona:
         # Set data in cache with 30-minute TTL

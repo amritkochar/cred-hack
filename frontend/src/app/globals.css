@@ -140,6 +140,7 @@ body {
   color: white;
   font-weight: 500;
   padding: 0.625rem 1.25rem;
+  margin-top: 1rem;
   border-radius: 9999px;
   transition: all 300ms;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);

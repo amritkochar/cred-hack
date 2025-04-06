@@ -4,8 +4,11 @@ import React, { createContext, useContext, useState, useRef, FC, PropsWithChildr
 import { v4 as uuidv4 } from "uuid";
 import { SessionStatus, ServerEvent, TranscriptItem } from "@/types";
 import { useTranscript } from "./TranscriptContext";
+import { useAuth } from "./AuthContext";
 import { createRealtimeConnection } from "@/lib/realtimeConnection";
-import agentConfig from "@/config/agentConfig";
+import { baseAgentConfig } from "@/config/agentConfig";
+import { getOpenAIEphemeralToken } from "@/utils/storage";
+import { getAgentConfigWithUserPersona } from "@/utils/agentConfigUtils";
 
 interface ConnectionContextValue {
   sessionStatus: SessionStatus;
@@ -17,6 +20,7 @@ const ConnectionContext = createContext<ConnectionContextValue | undefined>(unde
 
 export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
   const { transcriptItems, addTranscriptMessage, updateTranscriptMessage, addTranscriptEvent, updateTranscriptItemStatus } = useTranscript();
+  const { isAuthenticated } = useAuth();
 
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("DISCONNECTED");
 
@@ -128,6 +132,9 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
     
     addTranscriptEvent(`Function call: ${functionCallParams.name}`, args);
 
+    // Get the agent config with user persona injected at the time of function call
+    const agentConfig = getAgentConfigWithUserPersona(baseAgentConfig);
+
     if (agentConfig.toolLogic?.[functionCallParams.name]) {
       try {
         const fn = agentConfig.toolLogic[functionCallParams.name];
@@ -168,30 +175,34 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   };
 
-  const fetchEphemeralKey = async (): Promise<string | null> => {
-    try {
-      const tokenResponse = await fetch("/api/session");
-      const data = await tokenResponse.json();
-
-      if (!data.client_secret?.value) {
-        console.error("No ephemeral key provided by the server");
-        setSessionStatus("DISCONNECTED");
-        return null;
-      }
-
-      return data.client_secret.value;
-    } catch (error) {
-      console.error("Error fetching ephemeral key:", error);
+  const getEphemeralKey = (): string | null => {
+    // Get the OpenAI ephemeral token directly from localStorage
+    const ephemeralToken = getOpenAIEphemeralToken();
+    
+    if (!ephemeralToken) {
+      console.error("No ephemeral key found in localStorage");
       setSessionStatus("DISCONNECTED");
       return null;
     }
+    
+    return ephemeralToken;
   };
+
+  // We no longer need to fetch the ephemeral key from the server
+  // as we're getting it directly from localStorage
 
   const connect = async () => {
     if (sessionStatus !== "DISCONNECTED") return;
     setSessionStatus("CONNECTING");
 
     try {
+      // Check if user is authenticated
+      if (!isAuthenticated) {
+        addTranscriptEvent("Authentication required. Please log in.");
+        setSessionStatus("DISCONNECTED");
+        return;
+      }
+      
       // Check if we're in a secure context (required for microphone access)
       const isSecure = window.isSecureContext || 
                        window.location.hostname === 'localhost' || 
@@ -201,7 +212,8 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
         addTranscriptEvent("Security Warning: This application is not running in a secure context (HTTPS). Microphone access may be limited. For full functionality, please use HTTPS.");
       }
 
-      const EPHEMERAL_KEY = await fetchEphemeralKey();
+      // Get the ephemeral key directly from localStorage
+      const EPHEMERAL_KEY = getEphemeralKey();
       if (!EPHEMERAL_KEY) {
         addTranscriptEvent("Error: Could not obtain authentication token from server.");
         setSessionStatus("DISCONNECTED");
@@ -329,6 +341,9 @@ export const ConnectionProvider: FC<PropsWithChildren> = ({ children }) => {
       { type: "input_audio_buffer.clear" },
       "clear audio buffer on session update"
     );
+
+    // Get the agent config with user persona injected at the time of session update
+    const agentConfig = getAgentConfigWithUserPersona(baseAgentConfig);
 
     const turnDetection = {
       type: "server_vad",
