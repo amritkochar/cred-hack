@@ -3,8 +3,18 @@
 import React, { createContext, useContext, useState, useEffect, FC, PropsWithChildren } from "react";
 import { useRouter } from "next/navigation";
 import { AuthState, AuthTokens, LoginRequest, RegisterRequest } from "@/types/auth";
-import { fetchUserPersona, loginUser, registerUser, uploadBankStatement } from "@/api/backendApi";
-import { clearTokens, clearUserPersona, getTokens, isAuthenticated, storeTokens, storeUserPersona } from "@/utils/storage";
+import { fetchUserPersona, loginUser, registerUser } from "@/api/backendApi";
+import { 
+  clearTokens, 
+  clearUserPersona, 
+  getTokens, 
+  isAuthenticated, 
+  storeTokens, 
+  storeUserPersona,
+  storeIsNewUser,
+  getIsNewUser,
+  clearIsNewUser
+} from "@/utils/storage";
 
 // Define the context value interface
 interface AuthContextValue extends AuthState {
@@ -35,13 +45,14 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
     const checkAuth = () => {
       const tokens = getTokens();
       const authenticated = isAuthenticated();
+      const isNewUser = getIsNewUser();
 
       setState({
         isAuthenticated: authenticated,
         isLoading: false,
         tokens,
         error: null,
-        isNewUser: false,
+        isNewUser: isNewUser,
       });
     };
 
@@ -117,6 +128,10 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
       // Set cookies for server-side access
       setCookies(tokens);
 
+      // Store isNewUser flag in localStorage BEFORE updating state
+      // This ensures the flag is set before any navigation occurs
+      storeIsNewUser(true);
+
       // Set state to indicate this is a new user that needs onboarding
       setState({
         isAuthenticated: true,
@@ -126,8 +141,12 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
         isNewUser: true,
       });
 
-      // Redirect to onboarding page for new users
-      router.push('/auth/onboarding');
+      // Use a small delay to ensure state is updated before navigation
+      // This helps prevent the flash of the main screen
+      setTimeout(() => {
+        // Redirect to onboarding page for new users
+        router.push('/auth/onboarding');
+      }, 50);
     } catch (error) {
       setState({
         ...state,
@@ -156,6 +175,9 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
         isNewUser: false,
       });
 
+      // Clear isNewUser flag from localStorage
+      clearIsNewUser();
+
       // Redirect to home page after successful onboarding
       router.push('/');
     } catch (error) {
@@ -170,9 +192,10 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
 
   // Logout function
   const logout = (): void => {
-    // Clear localStorage tokens and user persona
+    // Clear localStorage tokens, user persona, and isNewUser flag
     clearTokens();
     clearUserPersona();
+    clearIsNewUser();
     
     // Clear cookies
     document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';

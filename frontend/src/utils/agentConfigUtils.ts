@@ -3,7 +3,6 @@
  */
 
 import { AgentConfig } from "@/types";
-import { UserPersona } from "@/types/userPersona";
 import { getUserPersona } from "./storage";
 
 /**

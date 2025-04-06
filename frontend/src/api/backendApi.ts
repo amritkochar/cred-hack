@@ -87,6 +87,7 @@ export const fetchUserPersona = async (): Promise<UserPersona> => {
 /**
  * Upload bank statement for user onboarding
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const uploadBankStatement = async (file: File): Promise<any> => {
   const formData = new FormData();
   formData.append('file', file);

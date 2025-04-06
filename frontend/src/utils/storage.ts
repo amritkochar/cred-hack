@@ -9,6 +9,7 @@ import { UserPersona } from "@/types/userPersona";
 const ACCESS_TOKEN_KEY = 'access_token';
 const OPENAI_EPHEMERAL_TOKEN_KEY = 'openai_ephemeral_token';
 const USER_PERSONA_KEY = 'user_persona';
+const IS_NEW_USER_KEY = 'is_new_user';
 
 /**
  * Check if code is running in a browser environment
@@ -128,4 +129,36 @@ export const clearUserPersona = (): void => {
     return;
   }
   localStorage.removeItem(USER_PERSONA_KEY);
+};
+
+/**
+ * Store isNewUser flag in local storage
+ */
+export const storeIsNewUser = (isNewUser: boolean): void => {
+  if (!isBrowser()) {
+    return;
+  }
+  localStorage.setItem(IS_NEW_USER_KEY, isNewUser ? 'true' : 'false');
+};
+
+/**
+ * Retrieve isNewUser flag from local storage
+ */
+export const getIsNewUser = (): boolean => {
+  if (!isBrowser()) {
+    return false;
+  }
+  
+  const isNewUserStr = localStorage.getItem(IS_NEW_USER_KEY);
+  return isNewUserStr === 'true';
+};
+
+/**
+ * Clear isNewUser flag from local storage
+ */
+export const clearIsNewUser = (): void => {
+  if (!isBrowser()) {
+    return;
+  }
+  localStorage.removeItem(IS_NEW_USER_KEY);
 };

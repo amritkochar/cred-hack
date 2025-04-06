@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useConnection } from "@/contexts/ConnectionContext";
-import { Mic, MicOff, Square } from "lucide-react";
+import { Mic, Square } from "lucide-react";
 
 interface MicButtonProps {
   size?: "sm" | "md" | "lg";

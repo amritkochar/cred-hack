@@ -103,6 +103,7 @@ export default function AuthForm() {
       }
     } catch (err) {
       // Error is handled by the auth context and displayed below
+      setErrors({ ...errors, form: (err as Error).message || "An unexpected error occurred" });
     }
   };
 
