@@ -167,9 +167,16 @@ def create_system_prompt(current_persona: dict) -> str:
        - Special financial circumstances
        - Any other important personal details mentioned
     6. Store these preferences and contextual information in the "personal_context" array as individual items
-    7. Return the COMPLETE updated user persona in the same JSON format
-    8. Only modify fields where you have new information from the conversation
-    9. For personal_context, add new insights as new items in the array, don't remove existing items
+    7. Perform sentiment analysis on the conversation to determine:
+       - User's emotional state (e.g., anxious, confident, frustrated, optimistic)
+       - Overall tone of the conversation (e.g., formal, casual, urgent, relaxed)
+       - Mood patterns throughout the interaction
+       - Any emotional triggers related to financial topics
+    8. Add sentiment analysis insights to the "personal_context" array with a prefix like "SENTIMENT:" 
+       For example: "SENTIMENT: User exhibits anxiety when discussing long-term investments"
+    9. Return the COMPLETE updated user persona in the same JSON format
+    10. Only modify fields where you have new information from the conversation
+    11. For personal_context, add new insights as new items in the array, don't remove existing items
     
     IMPORTANT: Return ONLY the updated JSON object with no additional text or explanation.
     """
